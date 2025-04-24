@@ -1,0 +1,13 @@
+name: Golf_Stats
+title: Golf_Stats
+username: mbusana
+account: mbusana
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 14459121
+bundleId: 10125331
+url: https://mbusana.shinyapps.io/Golf_Stats/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: app_modern.R
