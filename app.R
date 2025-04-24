@@ -23,7 +23,7 @@ read_gsheet_data <- function(sheet_id) {
     }
     df
   }, error = function(e) {
-    message("Error reading data: ", e$message)
+    message("Error reading data, following error: ", e$message)
     data.frame(
       date = as.Date(character()),
       handicap_index = numeric(),
