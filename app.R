@@ -7,6 +7,7 @@ library(plotly)
 library(fontawesome)
 library(thematic)
 
+
 # Set Pantone 342C as the accent color (RGB: 0, 94, 60)
 thematic_shiny(font = "auto", accent = "#005E3C")
 
@@ -18,7 +19,7 @@ read_gsheet_data <- function(sheet_id) {
     df <- read_sheet(sheet_id) %>%
       mutate(date = as.Date(date))
     if (nrow(df) == 0) {
-      stop("No data found in the sheet")
+      stop("No data found inn the sheet")
     }
     df
   }, error = function(e) {
