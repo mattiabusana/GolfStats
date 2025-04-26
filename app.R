@@ -12,6 +12,8 @@ library(thematic)
 thematic_shiny(font = "auto", accent = "#005E3C")
 
 sheet_id <- "1GM_VmaCJ_A_WqsjLrdAgjMnV48RXqDBimVIzismitqE"
+
+
 gs4_deauth()
 
 read_gsheet_data <- function(sheet_id) {
@@ -194,8 +196,66 @@ ui <- page_navbar(
         )
       )
     )
+  ),
+
+  nav_panel(
+    "Club Data",
+    div(
+      style = "position: relative; min-height: 100vh;",
+      tags$img(
+        src = "color.jpg",
+        style = "position: fixed; top: 0; left: 0; width: 120%; height: 120%; object-fit: cover; z-index: -1; opacity: 0.2; transform: translate(-8.33%, -8.33%);"
+      ),
+      div(
+        style = "padding: 1.5rem; position: relative;",
+        tags$style(HTML("
+          @font-face {
+            font-family: 'Aptos';
+            src: url('https://fonts.cdnfonts.com/css/aptos');
+          }
+          html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+          }
+          .card, .value-box, .card-header {
+            background-color: rgba(255, 255, 255, 0.95);
+            position: relative;
+            z-index: 1;
+            border-radius: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+          }
+          .navbar {
+            position: relative;
+            z-index: 2;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+          }
+          .shiny-html-output {
+            position: relative;
+            z-index: 1;
+          }
+          .bslib-value-box .plotly .modebar-container {
+            display: none;
+          }
+        ")),
+        layout_columns(
+          col_widths = c(12),
+          card(
+            card_header("Club Performance Analysis"),
+            div(
+              style = "text-align: center; padding: 2rem;",
+              h3("Club Data Section Coming Soon"),
+              p("This section will contain detailed analysis of club performance and statistics.")
+            ),
+            class = "shadow-sm",
+            height = "auto"
+          )
+        )
+      )
+    )
   )
-)
+) 
 
 # Server
 server <- function(input, output, session) {
