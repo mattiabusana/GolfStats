@@ -7,56 +7,18 @@ library(plotly)
 library(fontawesome)
 library(thematic)
 
-# Set Pantone 342C as the accent color (RGB: 0, 94, 60)
-thematic_shiny(font = "auto", accent = "#005E3C")
-
-sheet_id <- "1GM_VmaCJ_A_WqsjLrdAgjMnV48RXqDBimVIzismitqE"
-gs4_deauth()
-
-read_gsheet_data <- function(sheet_id) {
-  tryCatch({
-    df <- read_sheet(sheet_id) %>%
-      mutate(date = as.Date(date))
-    if (nrow(df) == 0) {
-      stop("No data found in the sheet")
-    }
-    df
-  }, error = function(e) {
-    message("Error reading data: ", e$message)
-    data.frame(
-      date = as.Date(character()),
-      handicap_index = numeric(),
-      points_normalized = numeric(),
-      putts_normalized = numeric(),
-      holes = numeric(),
-      tournament = character(),
-      course = character()
-    )
-  })
-} 
-
-# Custom theme
+# Set up theme
+thematic_shiny(font = "auto")
 custom_theme <- bs_theme(
-  version = 5,
+  bg = "#FFFFFF",
+  fg = "#000000",
   primary = "#005E3C",
-  secondary = "#ffc41e",
-  success = "#b71313",
-  "navbar-bg" = "#005E3C",
-  "card-border-color" = "#005E3C", 
-  "card-border-width" = "2px",
-  "card-border-radius" = "1rem",
-  "card-box-shadow" = "0 2px 4px rgba(0,0,0,0.15)",
-  "spacer" = "1.5rem",
-  # Aptos typography
-  "font-family-base" = "'Aptos', sans-serif",
-  "headings-font-family" = "'Aptos', sans-serif",
-  "headings-font-weight" = "normal",
-  "navbar-brand-font-family" = "'Aptos', sans-serif",
-  "navbar-brand-font-size" = "2rem",
-  "navbar-brand-font-weight" = "normal",
-  "navbar-brand-text-transform" = "uppercase",
-  "navbar-brand-letter-spacing" = "0.2em"
+  base_font = font_google("Aptos"),
+  spacer = "1.5rem"
 )
+
+# Google Sheet ID
+sheet_id <- "1-Zw5mq8gjuXxQVwNxn-ZVqrHlxvQ_kBPvR_gHY_7SQE"
 
 # UI
 ui <- page_navbar(
@@ -71,7 +33,7 @@ ui <- page_navbar(
       style = "position: relative; min-height: 100vh;",
       tags$img(
         src = "color.jpg",
-        style = "position: fixed; top: 0; left: 0; width: 120%; height: 120%; object-fit: cover; z-index: -1; opacity: 0.3; transform: translate(-8.33%, -8.33%);"
+        style = "position: fixed; top: 0; left: 0; width: 120%; height: 120%; object-fit: cover; z-index: -1; opacity: 0.2; transform: translate(-8.33%, -8.33%);"
       ),
       div(
         style = "padding: 1.5rem; position: relative;",
@@ -91,7 +53,7 @@ ui <- page_navbar(
             position: relative;
             z-index: 1;
             border-radius: 1rem;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
           }
           .navbar {
             position: relative;
@@ -110,56 +72,46 @@ ui <- page_navbar(
           col_widths = c(3, 3, 3, 3),
           value_box(
             title = "9-Hole Rounds",
-            value = uiOutput("n_9"),
-            showcase = icon("golf-ball-tee", class = "fa-lg"),
-            theme = "primary",
+            value = textOutput("total_rounds_9"),
+            showcase = icon("golf-ball", class = "fa-lg"),
             class = "shadow-sm",
             height = "150px",
             style = "font-size: 1.2rem;"
           ),
           value_box(
             title = "18-Hole Rounds",
-            value = uiOutput("n_18"),
-            showcase = icon("golf-ball-tee", class = "fa-lg"),
-            theme = "secondary",
+            value = textOutput("total_rounds_18"),
+            showcase = icon("golf-ball", class = "fa-lg"),
             class = "shadow-sm",
             height = "150px",
             style = "font-size: 1.2rem;"
           ),
           value_box(
             title = "Tournaments",
-            value = uiOutput("n_tourn"),
+            value = textOutput("total_tournaments"),
             showcase = icon("trophy", class = "fa-lg"),
-            theme = "primary",
             class = "shadow-sm",
             height = "150px",
             style = "font-size: 1.2rem;"
           ),
           value_box(
             title = "Handicap",
-            value = uiOutput("hcp"),
+            value = textOutput("current_handicap"),
             showcase = icon("chart-line", class = "fa-lg"),
-            theme = "success",
             class = "shadow-sm",
             height = "150px",
             style = "font-size: 1.2rem;"
           )
         ),
-        
-        div(style = "margin-top: 1.5rem;"),
-        
         layout_columns(
           col_widths = c(12),
           card(
             card_header("Handicap Trend"),
-            plotlyOutput("plot_hcp", height = "300px"),
+            plotlyOutput("handicap_plot", height = "300px"),
             class = "shadow-sm",
             height = "400px"
           )
         ),
-        
-        div(style = "margin-top: 1.5rem;"),
-        
         layout_columns(
           col_widths = c(12),
           card(
@@ -169,171 +121,205 @@ ui <- page_navbar(
               uiOutput("selector_ui")
             ),
             class = "shadow-sm",
-            height = "auto",
-            style = "padding: 1rem;"
+            height = "auto"
           )
         ),
-        
-        div(style = "margin-top: 1.5rem;"),
-        
         layout_columns(
           col_widths = c(6, 6),
           card(
             card_header("Normalized Points"),
-            plotlyOutput("plot_points", height = "300px"),
+            plotlyOutput("points_plot", height = "300px"),
             class = "shadow-sm",
             height = "400px"
           ),
           card(
             card_header("Putts per Hole"),
-            plotlyOutput("putts_per_hole", height = "300px"),
+            plotlyOutput("putts_plot", height = "300px"),
             class = "shadow-sm",
             height = "400px"
           )
         )
       )
     )
+  ),
+  
+  nav_panel(
+    "Club Data",
+    div(
+      style = "position: relative; min-height: 100vh;",
+      tags$img(
+        src = "color.jpg",
+        style = "position: fixed; top: 0; left: 0; width: 120%; height: 120%; object-fit: cover; z-index: -1; opacity: 0.2; transform: translate(-8.33%, -8.33%);"
+      ),
+      div(
+        style = "padding: 1.5rem; position: relative;",
+        tags$style(HTML("
+          @font-face {
+            font-family: 'Aptos';
+            src: url('https://fonts.cdnfonts.com/css/aptos');
+          }
+          html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+          }
+          .card, .value-box, .card-header {
+            background-color: rgba(255, 255, 255, 0.95);
+            position: relative;
+            z-index: 1;
+            border-radius: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+          }
+          .navbar {
+            position: relative;
+            z-index: 2;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+          }
+          .shiny-html-output {
+            position: relative;
+            z-index: 1;
+          }
+          .bslib-value-box .plotly .modebar-container {
+            display: none;
+          }
+        ")),
+        layout_columns(
+          col_widths = c(12),
+          card(
+            card_header("Club Performance Analysis"),
+            div(
+              style = "text-align: center; padding: 2rem;",
+              h3("Club Data Section Coming Soon"),
+              p("This section will contain detailed analysis of club performance and statistics.")
+            ),
+            class = "shadow-sm",
+            height = "auto"
+          )
+        )
+      )
+    )
   )
-)
+) 
 
 # Server
 server <- function(input, output, session) {
-  data <- reactive({
-    df <- read_gsheet_data(sheet_id)
-    if (nrow(df) == 0) {
-      showNotification("No data available. Please check the Google Sheet connection.", type = "error")
-    }
-    df
+  # Read data from Google Sheet
+  read_gsheet_data <- reactive({
+    tryCatch({
+      sheet_data <- read_sheet(sheet_id)
+      if (nrow(sheet_data) == 0) {
+        return(data.frame(
+          Date = as.Date(character()),
+          Course = character(),
+          Holes = numeric(),
+          Points = numeric(),
+          Tournament = logical(),
+          Putts = numeric(),
+          stringsAsFactors = FALSE
+        ))
+      }
+      return(sheet_data)
+    }, error = function(e) {
+      showNotification("Error reading data from Google Sheet", type = "error")
+      return(data.frame(
+        Date = as.Date(character()),
+        Course = character(),
+        Holes = numeric(),
+        Points = numeric(),
+        Tournament = logical(),
+        Putts = numeric(),
+        stringsAsFactors = FALSE
+      ))
+    })
   })
-  
-  output$hcp <- renderText({ 
-    req(data())
-    if (nrow(data()) > 0) {
-      hcp_str <- data()$handicap_index[length(data()$handicap_index)]
-      if (is.na(hcp_str)) "N/A" else hcp_str
+
+  # Calculate statistics
+  output$total_rounds_9 <- renderText({
+    data <- read_gsheet_data()
+    sum(data$Holes == 9, na.rm = TRUE)
+  })
+
+  output$total_rounds_18 <- renderText({
+    data <- read_gsheet_data()
+    sum(data$Holes == 18, na.rm = TRUE)
+  })
+
+  output$total_tournaments <- renderText({
+    data <- read_gsheet_data()
+    sum(data$Tournament, na.rm = TRUE)
+  })
+
+  output$current_handicap <- renderText({
+    data <- read_gsheet_data()
+    if (nrow(data) > 0) {
+      round(tail(data$Handicap, 1), 1)
     } else {
       "N/A"
     }
-  }) 
-  
-  output$n_9 <- renderText({ 
-    req(data())
-    if (nrow(data()) > 0) {
-      n_9 <- data() %>% 
-        filter(holes == 9) %>% 
-        nrow()
-      if (is.na(n_9)) "0" else n_9
-    } else {
-      "0"
-    }
-  }) 
-  
-  output$n_18 <- renderText({ 
-    req(data())
-    if (nrow(data()) > 0) {
-      n_18 <- data() %>% 
-        filter(holes == 18) %>% 
-        nrow()
-      if (is.na(n_18)) "0" else n_18
-    } else {
-      "0"
-    }
-  }) 
-  
-  output$n_tourn <- renderText({ 
-    req(data())
-    if (nrow(data()) > 0) {
-      tours <- sum(data()$tournament == "y", na.rm = TRUE)
-      if (is.na(tours)) "0" else tours
-    } else {
-      "0"
-    }
-  }) 
-  
+  })
+
+  # Course selector UI
   output$selector_ui <- renderUI({
-    req(data())
-    if (nrow(data()) > 0) {
-      courses <- unique(data()$course)
-      radioButtons("course", "Select course:",
-                  choices = c("All", courses), 
-                  selected = "All",
-                  inline = TRUE)
+    data <- read_gsheet_data()
+    courses <- unique(data$Course)
+    if (length(courses) > 0) {
+      selectInput("course_select", "Select Course:",
+                choices = c("All", courses), selected = "All", width = "100%")
     } else {
-      radioButtons("course", "Select course:",
-                  choices = "No courses available",
-                  selected = "No courses available",
-                  inline = TRUE)
+      selectInput("course_select", "Select Course:",
+                choices = c("All"), selected = "All", width = "100%")
     }
   })
-  
+
+  # Filtered data based on course selection
   filtered_data <- reactive({
-    req(data(), input$course)
-    if (nrow(data()) == 0) {
-      return(data())
+    data <- read_gsheet_data()
+    if (input$course_select != "All") {
+      data <- data[data$Course == input$course_select, ]
     }
-    if (input$course == "All") {
-      data()
-    } else {
-      data() %>% filter(course == input$course)
+    data
+  })
+
+  # Handicap plot
+  output$handicap_plot <- renderPlotly({
+    data <- read_gsheet_data()
+    if (nrow(data) > 0) {
+      p <- plot_ly(data, x = ~Date, y = ~Handicap, type = 'scatter', mode = 'lines+markers',
+                  line = list(color = '#005E3C'), marker = list(color = '#005E3C')) %>%
+           layout(title = "",
+                  xaxis = list(title = "Date", rangemode = "normal"),
+                  yaxis = list(title = "Handicap", rangemode = "normal"))
+      p
     }
   })
-  
-  output$plot_hcp <- renderPlotly({
-    req(data())
-    if (nrow(data()) == 0) {
-      return(plotly_empty())
+
+  # Points plot
+  output$points_plot <- renderPlotly({
+    data <- filtered_data()
+    if (nrow(data) > 0) {
+      p <- plot_ly(data, x = ~Date, y = ~Points, type = 'scatter', mode = 'lines+markers',
+                  line = list(color = '#005E3C'), marker = list(color = '#005E3C')) %>%
+           layout(title = "",
+                  xaxis = list(title = "Date", rangemode = "normal"),
+                  yaxis = list(title = "Points", rangemode = "normal"))
+      p
     }
-    fig <- plot_ly(data(), height = 300, x = ~date, y= ~handicap_index, 
-                  type = "scatter", mode = "lines+markers",
-                  fill = "tozeroy", 
-                  alpha = 0.1, color = I("#005E3C")) %>%
-      layout( 
-        xaxis = list(visible = TRUE, showgrid = FALSE, title = "Time"), 
-        yaxis = list(visible = TRUE, showgrid = FALSE, title = "Handicap", rangemode = "normal"), 
-        hovermode = "x", 
-        margin = list(t = 30, r = 30, l = 30, b = 30), 
-        paper_bgcolor = "transparent", 
-        plot_bgcolor = "transparent" )
-    fig
   })
-  
-  output$plot_points <- renderPlotly({
-    req(filtered_data())
-    if (nrow(filtered_data()) == 0) {
-      return(plotly_empty())
+
+  # Putts plot
+  output$putts_plot <- renderPlotly({
+    data <- filtered_data()
+    if (nrow(data) > 0) {
+      p <- plot_ly(data, x = ~Date, y = ~Putts, type = 'scatter', mode = 'lines+markers',
+                  line = list(color = '#005E3C'), marker = list(color = '#005E3C')) %>%
+           layout(title = "",
+                  xaxis = list(title = "Date", rangemode = "normal"),
+                  yaxis = list(title = "Putts per Hole", rangemode = "normal"))
+      p
     }
-    fig <- plot_ly(filtered_data(), height = 300, x = ~date, y= ~points_normalized, 
-                  type = "scatter", mode = "lines+markers",
-                  fill = "tozeroy", 
-                  alpha = 0.1, color = I("#005E3C")) %>%
-      layout( 
-        xaxis = list(visible = TRUE, showgrid = FALSE, title = "Time"), 
-        yaxis = list(visible = TRUE, showgrid = FALSE, title = "Points", rangemode = "normal"), 
-        hovermode = "x", 
-        margin = list(t = 30, r = 30, l = 30, b = 30), 
-        paper_bgcolor = "transparent", 
-        plot_bgcolor = "transparent" )
-    fig
-  })
-  
-  output$putts_per_hole <- renderPlotly({
-    req(filtered_data())
-    if (nrow(filtered_data()) == 0) {
-      return(plotly_empty())
-    }
-    fig <- plot_ly(filtered_data(), height = 300, x = ~date, y= ~putts_normalized, 
-                  type = "scatter", mode = "lines+markers",
-                  fill = "tozeroy", 
-                  alpha = 0.1, color = I("#005E3C")) %>%
-      layout( 
-        xaxis = list(visible = TRUE, showgrid = FALSE, title = "Time"), 
-        yaxis = list(visible = TRUE, showgrid = FALSE, title = "Putts per Hole", rangemode = "normal"), 
-        hovermode = "x", 
-        margin = list(t = 30, r = 30, l = 30, b = 30), 
-        paper_bgcolor = "transparent", 
-        plot_bgcolor = "transparent" )
-    fig
   })
 }
 
-shinyApp(ui, server) 
+# Run the app
+shinyApp(ui = ui, server = server) 
