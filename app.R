@@ -192,8 +192,31 @@ ui <- page_navbar(
             plotlyOutput("putts_per_hole", height = "300px"),
             class = "shadow-sm",
             height = "400px"
+          ),
+          card(
+            card_header("Green in Regulation"),
+            plotlyOutput("green_in_regulation", height = "300px"),
+            class = "shadow-sm",
+            height = "400px"
+          ),
+          card(
+            card_header("Fairways hit"),
+            plotlyOutput("fairways_hit", height = "300px"),
+            class = "shadow-sm",
+            height = "400px"
           )
-        )
+          
+        ),
+        
+        layout_columns(
+          col_widths = c(12),
+          card(
+            card_header("Fairways Miss"),
+            plotlyOutput("fairways_dir", height = "300px"),
+            class = "shadow-sm",
+            height = "400px"
+          ))
+        
       )
     )
   ),
@@ -242,14 +265,14 @@ ui <- page_navbar(
         layout_columns(
           col_widths = c(12),
           card(
-            card_header("Club Performance Analysis"),
+            card_header("Club Selection"),
             div(
-              style = "text-align: center; padding: 2rem;",
-              h3("Club Data Section Coming Soon"),
-              p("This section will contain detailed analysis of club performance and statistics.")
+              style = "max-height: 200px; overflow-y: auto;",
+              uiOutput("selector_club_ui")
             ),
             class = "shadow-sm",
-            height = "auto"
+            height = "auto",
+            style = "padding: 1rem;"
           )
         )
       )
@@ -395,6 +418,92 @@ server <- function(input, output, session) {
         plot_bgcolor = "transparent" )
     fig
   })
+  
+  
+  output$green_in_regulation <- renderPlotly({
+    req(filtered_data())
+    if (nrow(filtered_data()) == 0) {
+      return(plotly_empty())
+    }
+    fig <- plot_ly(filtered_data(), height = 300, x = ~date, y= ~gir_normalized, 
+                   type = "scatter", mode = "lines+markers",
+                   fill = "tozeroy", 
+                   alpha = 0.1, color = I("#005E3C")) %>%
+      layout( 
+        xaxis = list(visible = TRUE, showgrid = FALSE, title = "Time"), 
+        yaxis = list(visible = TRUE, showgrid = FALSE, title = "Green in regulation", rangemode = "normal"), 
+        hovermode = "x", 
+        margin = list(t = 30, r = 30, l = 30, b = 30), 
+        paper_bgcolor = "transparent", 
+        plot_bgcolor = "transparent" )
+    fig
+  })
+  
+  
+  output$fairways_hit <- renderPlotly({
+    req(filtered_data())
+    if (nrow(filtered_data()) == 0) {
+      return(plotly_empty())
+    }
+    fig <- plot_ly(filtered_data(), height = 300, x = ~date, y= ~fairway_hits_normalized, 
+                   type = "scatter", mode = "lines+markers",
+                   fill = "tozeroy", 
+                   alpha = 0.1, color = I("#005E3C")) %>%
+      layout( 
+        xaxis = list(visible = TRUE, showgrid = FALSE, title = "Time"), 
+        yaxis = list(visible = TRUE, showgrid = FALSE, title = "Fairways Hit", rangemode = "normal"), 
+        hovermode = "x", 
+        margin = list(t = 30, r = 30, l = 30, b = 30), 
+        paper_bgcolor = "transparent", 
+        plot_bgcolor = "transparent" )
+    fig
+  })
+  
+  output$fairways_dir <- renderPlotly({
+    req(filtered_data())
+    if (nrow(filtered_data()) == 0) {
+      return(plotly_empty())
+    }
+  fig <- plot_ly(filtered_data(), x = ~date) %>%
+    add_trace(y = ~fairway_l_normalized, name = "Left Miss", type = 'bar', opacity = 0.8,   marker = list(color = "#b71313",      line = list(color = 'rgba(0, 0, 0, 0.8)', width = 1)) ) %>%
+    add_trace(y = ~fairway_hits_normalized, name = "Hits", type = 'bar', opacity = 0.8,   marker = list(color = '#005E3C',      line = list(color = 'rgba(0, 0, 0, 0.8)', width = 1)) ) %>%
+    add_trace(y = ~fairway_r_normalized, name = "Right Miss", type = 'bar',   opacity = 0.8, marker = list(color = "#ffc41e",      line = list(color = 'rgba(0, 0, 0, 0.8)', width = 1)) ) %>%
+    layout(
+      barmode = 'group',
+      xaxis = list(title = "Time", showgrid = FALSE),
+      yaxis = list(title = "Fairway normalized", showgrid = FALSE),
+      hovermode = "x",
+      margin = list(t = 30, r = 30, l = 30, b = 30),
+      paper_bgcolor = "transparent",
+      plot_bgcolor = "transparent"
+    )
+  fig
+  })
+  
+  
+  ############### Club Data #############
+  
+  
+  output$selector_club_ui <- renderUI({
+    req(data())
+    if (nrow(data()) > 0) {
+      courses <- unique(data()$course)
+      radioButtons("course", "Select course:",
+                   choices = c("All", courses), 
+                   selected = "All",
+                   inline = TRUE)
+    } else {
+      radioButtons("course", "Select course:",
+                   choices = "No courses available",
+                   selected = "No courses available",
+                   inline = TRUE)
+    }
+  })
+  
+  
+  
+  
+  
 }
 
 shinyApp(ui, server) 
