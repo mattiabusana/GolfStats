@@ -263,7 +263,7 @@ ui <- page_navbar(
           }
         ")),
         layout_columns(
-          col_widths = c(12),
+          col_widths = c(6,6),
           card(
             card_header("Club Selection"),
             div(
@@ -273,7 +273,18 @@ ui <- page_navbar(
             class = "shadow-sm",
             height = "auto",
             style = "padding: 1rem;"
-          )
+          ),
+          card(
+            card_header("Time interval "),
+            div(
+              style = "max-height: 200px; overflow-y: auto;",
+              uiOutput("selector_time_interval")
+            ),
+            class = "shadow-sm",
+            height = "auto",
+            style = "padding: 1rem;"
+          ),
+          
         )
       )
     )
@@ -483,24 +494,40 @@ server <- function(input, output, session) {
   
   ############### Club Data #############
   
-  
   output$selector_club_ui <- renderUI({
     req(data())
     if (nrow(data()) > 0) {
-      courses <- unique(data()$course)
-      radioButtons("course", "Select course:",
-                   choices = c("All", courses), 
-                   selected = "All",
-                   inline = TRUE)
-    } else {
-      radioButtons("course", "Select course:",
-                   choices = "No courses available",
-                   selected = "No courses available",
-                   inline = TRUE)
+      club_list <- c("D", "3W", "3H", "4i", "5i", "6i", "7i", "8i", "9i", "PW", "GW", "SW", "LW")
+      checkboxGroupInput("club", "Select clubs:",
+                         choices = c("All", club_list), 
+                         selected = "All",
+                         inline = TRUE)
     }
   })
   
+  # Observe the selection and toggle 'All' based on other selections
+  observe({
+    selected_clubs <- input$club
+    
+    if ("All" %in% selected_clubs) {
+      # If "All" is selected, unselect all others
+      updateCheckboxGroupInput(session, "club", selected = "All")
+    } else {
+      # If any club is selected, ensure "All" is not selected
+      updateCheckboxGroupInput(session, "club", selected = selected_clubs)
+    }
+  })
   
+  output$selector_time_interval <- renderUI({
+    req(data())
+    if (nrow(data()) > 0) {
+      intervals <- c("Always", "Last month", "Last 3 months", "Last 6 months", "Last year")
+      radioButtons("course", "Select course:",
+                   choices = intervals, 
+                   selected = "Last month",
+                   inline = TRUE)
+    }
+  })
   
   
   
