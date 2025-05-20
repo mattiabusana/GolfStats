@@ -16,10 +16,33 @@ sheet_id <- "1GM_VmaCJ_A_WqsjLrdAgjMnV48RXqDBimVIzismitqE"
 
 gs4_deauth()
 
-read_gsheet_data <- function(sheet_id) {
+read_gsheet_data <- function(sheet_id, n) {
   tryCatch({
-    df <- read_sheet(sheet_id) %>%
+    df <- read_sheet(sheet_id, sheet = n) %>%
       mutate(date = as.Date(date))
+    if (nrow(df) == 0) {
+      stop("No data found inn the sheet")
+    }
+    df
+  }, error = function(e) {
+    message("Error reading data, following error: ", e$message)
+    data.frame(
+      date = as.Date(character()),
+      handicap_index = numeric(),
+      points_normalized = numeric(),
+      putts_normalized = numeric(),
+      holes = numeric(),
+      tournament = character(),
+      course = character()
+    )
+  })
+} 
+
+
+read_gsheet_data_2 <- function(sheet_id, n) {
+  tryCatch({
+    df <- read_sheet(sheet_id, sheet = n) %>%
+      mutate(date = as.Date(date, format = "%d.%m.%y"))
     if (nrow(df) == 0) {
       stop("No data found inn the sheet")
     }
@@ -285,7 +308,18 @@ ui <- page_navbar(
             style = "padding: 1rem;"
           ),
           
-        )
+        ),
+        
+        layout_columns(
+          col_widths = c(12),
+          card(
+            card_header("Summary carry"),
+            plotlyOutput("summary_carry", height = "300px"),
+            class = "shadow-sm",
+            height = "400px"
+          ))
+        
+        
       )
     )
   )
@@ -294,7 +328,7 @@ ui <- page_navbar(
 # Server
 server <- function(input, output, session) {
   data <- reactive({
-    df <- read_gsheet_data(sheet_id)
+    df <- read_gsheet_data(sheet_id, n = 1)
     if (nrow(df) == 0) {
       showNotification("No data available. Please check the Google Sheet connection.", type = "error")
     }
@@ -522,11 +556,112 @@ server <- function(input, output, session) {
     req(data())
     if (nrow(data()) > 0) {
       intervals <- c("Always", "Last month", "Last 3 months", "Last 6 months", "Last year")
-      radioButtons("course", "Select course:",
+      radioButtons("time_intervals", "Select time interval:",
                    choices = intervals, 
                    selected = "Last month",
                    inline = TRUE)
     }
+  })
+  
+  
+  data_club <- reactive({
+    df <- read_gsheet_data_2(sheet_id, n = 2)
+    if (nrow(df) == 0) {
+      showNotification("No data available. Please check the Google Sheet connection.", type = "error")
+    }
+    df
+  })
+  
+    
+  filtered_club_data <- reactive({
+    req(data_club(), input$time_intervals, input$club)
+    if (nrow(data_club()) == 0) {
+      return(data_club())
+    }
+    if (input$club == "All") {
+      data_club()
+    } else {
+      data_club() %>% filter(club_type %in% input$club)
+    }
+  })
+  
+  
+  ##### Sistemare qui. In piu. 
+  
+  
+  output$summary_carry <- renderPlotly({
+    req(filtered_club_data())
+    
+    
+    
+    
+    club_levels <- sort(unique(filtered_df$club_type))
+    colors <- c(
+      "#DDFFE7", "#98D7C2", "#29A0B1", "#167D7F",
+      "#FABEC0", "#F85C70", "#F37970", "#E43D40",
+      "#E7625F", "#C85250", "#BFD7ED", "#60A3D9", "#0074B7"
+    )
+    names(colors) <- club_levels
+    
+    
+    fig <- p <- plot_ly()
+    
+    for (club in club_levels) {
+      club_data <- filtered_df %>% filter(club_type == club)
+      p <- add_trace(
+        p,
+        y = club_data$club_type,
+        x = club_data$carry,
+        type = "box",
+        name = club,
+        orientation = 'h',
+        boxpoints = FALSE,
+        line = list(color = "black", width = 1),  # Border around boxes
+        fillcolor = colors[club],
+        marker = list(color = colors[club]),
+        showlegend = FALSE
+      )
+    }
+    
+    # Add median labels to the left
+    median_text_x <- 25
+    
+    p <- add_trace(
+      p,
+      type = "scatter",
+      mode = "text",
+      x = rep(median_text_x, nrow(list_medians)),
+      y = list_medians$club_type,
+      text = list_medians$median_carry,
+      textposition = "middle right",
+      textfont = list(size = 15, color = "black"),
+      showlegend = FALSE,
+      hoverinfo = "none"
+    )
+    
+    # Layout with stronger axes
+    p <- layout(
+      p,
+      xaxis = list(
+        title = "Carry (m)",
+        tickvals = seq(30, 230, 10),
+        range = c(20, 230),
+        showline = TRUE,
+        linewidth = 1,
+        linecolor = "black"
+      ),
+      yaxis = list(
+        title = "Club",
+        tickfont = list(size = 14),
+        showline = TRUE,
+        linewidth = 1,
+        linecolor = "black"
+      ),
+      margin = list(l = 120, r = 50),
+      template = "plotly_white"
+    )
+    
+     
   })
   
   
